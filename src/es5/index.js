@@ -21,17 +21,17 @@ var runCommandAsync = function runCommandAsync(cmd, options) {
   cmd = spawn(cmd, options);
   return new _promise2.default(function (resolve, reject) {
     cmd.stdout.on('data', function (data) {
-      //console.log(`stdout: ${data}`);
       resolve(data);
     });
 
     cmd.stderr.on('data', function (data) {
-      //console.log(`stderr: ${data}`);
       reject(data);
     });
 
     cmd.on('close', function (code) {
-      // console.log(`child process exited with code ${code}`);
+      if (code !== 0) {
+        throw new Error('run ', cmd, options, 'failed, Error Code: ', code);
+      }
     });
   });
 };
@@ -45,7 +45,7 @@ var getLineChanges = function getLineChanges(log) {
   var isDeletion = /(\d+)\sdeletion/;
 
   var sum = 0;
-  var sumString = [];
+  var valueArray = [];
   for (var i = len - 1; i > 0; i--) {
     var line = lines[i];
     if (skipCommitTitle.test(line)) {
@@ -57,19 +57,16 @@ var getLineChanges = function getLineChanges(log) {
       if (matchDeletion) {
         sum = sum - parseInt(matchDeletion[1]);
       }
-      sumString.push(sum);
-    } else {
-      //console.log('skip ', line)
+      valueArray.push(sum);
     }
   }
-  return sumString;
+  return valueArray;
 };
 
 var plotChanges = function plotChanges(changes) {
-  console.log(changes.length);
   var chart = new Chart({
-    xlabel: 'commits',
-    ylabel: 'lines',
+    xlabel: 'commit',
+    ylabel: 'code lines',
     direction: 'y',
     width: changes.length * 2,
     height: 10,
@@ -77,9 +74,10 @@ var plotChanges = function plotChanges(changes) {
     step: 2
   });
 
-  changes.forEach(function (change) {
-    chart.addBar(parseInt(change));
-  });
+  for (var i = 0; i < changes.length; i++) {
+    chart.addBar(parseInt(changes[i]));
+  }
+
   chart.draw();
 };
 
@@ -116,16 +114,25 @@ var main = function () {
     while (1) {
       switch (_context2.prev = _context2.next) {
         case 0:
-          _context2.next = 2;
+          _context2.prev = 0;
+          _context2.next = 3;
           return main();
 
-        case 2:
-          process.exit(0);
-
         case 3:
+          process.exit(0);
+          _context2.next = 9;
+          break;
+
+        case 6:
+          _context2.prev = 6;
+          _context2.t0 = _context2['catch'](0);
+
+          console.log(_context2.t0.stack);
+
+        case 9:
         case 'end':
           return _context2.stop();
       }
     }
-  }, _callee2, undefined);
+  }, _callee2, undefined, [[0, 6]]);
 }))();

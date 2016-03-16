@@ -5,18 +5,18 @@ let runCommandAsync = (cmd, options) => {
   cmd = spawn(cmd, options)
   return new Promise( (resolve, reject) => {
     cmd.stdout.on('data', (data) => {
-      //console.log(`stdout: ${data}`);
       resolve(data)
     });
 
     cmd.stderr.on('data', (data) => {
-      //console.log(`stderr: ${data}`);
       reject(data)
     });
 
     cmd.on('close', (code) => {
-     // console.log(`child process exited with code ${code}`);
-    });
+      if (code !== 0) {
+        throw new Error('run ', cmd, options, 'failed, Error Code: ', code)
+      }
+    })
   })
 }
 
@@ -29,7 +29,7 @@ let getLineChanges = (log) => {
   let isDeletion = /(\d+)\sdeletion/
 
   let sum = 0
-  let sumString = []
+  let valueArray = []
   for (let i = len - 1; i > 0; i--) {
     let line = lines[i]
     if (skipCommitTitle.test(line)) {
@@ -41,19 +41,16 @@ let getLineChanges = (log) => {
       if (matchDeletion) {
         sum = sum - parseInt(matchDeletion[1])
       }
-      sumString.push(sum)
-    } else {
-      //console.log('skip ', line)
+      valueArray.push(sum)
     }
   }
-  return sumString
+  return valueArray
 }
 
 let plotChanges = (changes) => {
-  console.log(changes.length)
   let chart = new Chart({
-    xlabel: 'commits',
-    ylabel: 'lines',
+    xlabel: 'commit',
+    ylabel: 'code lines',
     direction: 'y',
     width: changes.length * 2,
     height: 10,
@@ -61,9 +58,10 @@ let plotChanges = (changes) => {
     step: 2
   })
 
-  changes.forEach( (change) => {
-    chart.addBar(parseInt(change))
-  })
+  for (let i = 0; i < changes.length; i++) {
+    chart.addBar(parseInt(changes[i]))
+  }
+
   chart.draw();
 }
 
@@ -74,7 +72,11 @@ let main = async () => {
 }
 
 (async () => {
-  await main()
-  process.exit(0)
+  try {
+    await main()
+    process.exit(0)
+  } catch(e) {
+    console.log(e.stack)
+  }
 })()
 
